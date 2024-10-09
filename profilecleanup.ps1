@@ -1,6 +1,10 @@
 # Define the users to exclude
 $excludedUsers = @("Administrator", "Domain Users", "YourUser1", "YourUser2")
 
+# Add system accounts to the exclusion list
+$systemAccounts = @("SYSTEM", "LOCAL SERVICE", "NETWORK SERVICE", "DefaultAccount", "Guest")
+$excludedUsers += $systemAccounts
+
 # Get all user profiles
 $userProfiles = Get-WmiObject Win32_UserProfile | Where-Object { $_.Special -eq $false }
 
