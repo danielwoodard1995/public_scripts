@@ -19,23 +19,6 @@ foreach ($accountName in $accountNames) {
         $profile | Remove-CimInstance
         Write-Output "Profile removed for account: $accountName"
         
-        # Remove the user's folder
-        $userFolder = $profile.LocalPath
-        if (Test-Path $userFolder) {
-            Write-Output "Removing user folder: $userFolder"
-            
-            # Remove subfolders and files
-            Get-ChildItem -Path $userFolder -Recurse | ForEach-Object {
-                Write-Output "Removing: $_"
-                Remove-Item -Path $_.FullName -Recurse -Force
-            }
-            
-            # Remove the main user folder
-            Remove-Item -Path $userFolder -Recurse -Force
-            Write-Output "User folder removed: $userFolder"
-        } else {
-            Write-Output "User folder not found: $userFolder"
-        }
     } else {
         Write-Output "Profile for account: $accountName not found."
     }
