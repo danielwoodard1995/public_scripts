@@ -14,6 +14,24 @@ foreach ($accountName in $accountNames) {
     if ($profile) {
         Write-Output "Profile found for account: $accountName"
         
+        # Get the user folder path
+        $userFolderPath = $profile.LocalPath
+        
+        # Check if the user folder exists
+        if (Test-Path -Path $userFolderPath) {
+            Write-Output "User folder found for account: $accountName"
+            
+            # Display the command that will be executed
+            Write-Output "Removing user folder for account: $accountName"
+            Write-Output "Command: Remove-Item -Path $userFolderPath -Recurse -Force"
+            
+            # Execute the command to remove the user folder
+            Remove-Item -Path $userFolderPath -Recurse -Force
+            Write-Output "User folder removed for account: $accountName"
+        } else {
+            Write-Output "User folder for account: $accountName not found."
+        }
+        
         # Display the command that will be executed
         Write-Output "Removing profile for account: $accountName"
         Write-Output "Command: Remove-CimInstance -InputObject \$profile"
