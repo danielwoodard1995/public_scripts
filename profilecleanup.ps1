@@ -1,33 +1,45 @@
-# Define the list of usernames
-$usernames = 'UserA', 'UserB', 'UserC'
+# Define the array of account names
+$accountNames = @('UserA', 'UserB', 'UserC')
 
-# Loop through each username and remove their profiles in parallel
-foreach ($username in $usernames) {
-    Start-Job -ScriptBlock {
-        param ($username)
+# Loop through each account name and execute the command
+foreach ($accountName in $accountNames) {
+    Write-Output "Processing account: $accountName"
+    
+    # Fetch the user profile
+    $profile = Get-CimInstance -Class Win32_UserProfile | Where-Object { $_.LocalPath.split('\')[-1] -eq $accountName }
+    
+    if ($profile) {
+        Write-Output "Profile found for account: $accountName"
         
-        Write-Output "Starting removal process for user profile: $username"
+        # Display the command that will be executed
+        Write-Output "Removing profile for account: $accountName"
+        Write-Output "Command: Remove-CimInstance -InputObject \$profile"
         
-        $profiles = Get-CimInstance -Class Win32_UserProfile | Where-Object { $_.LocalPath.split('\')[-1] -eq $username }
+        # Execute the command to remove the profile
+        $profile | Remove-CimInstance
+        Write-Output "Profile removed for account: $accountName"
         
-        foreach ($profile in $profiles) {
-            Write-Output "Removing profile for user: $username"
-            Remove-CimInstance -InputObject $profile
+        # Remove the user's folder
+        $userFolder = $profile.LocalPath
+        if (Test-Path $userFolder) {
+            Write-Output "Removing user folder: $userFolder"
+            
+            # Remove subfolders and files
+            Get-ChildItem -Path $userFolder -Recurse | ForEach-Object {
+                Write-Output "Removing: $_"
+                Remove-Item -Path $_.FullName -Recurse -Force
+            }
+            
+            # Remove the main user folder
+            Remove-Item -Path $userFolder -Recurse -Force
+            Write-Output "User folder removed: $userFolder"
+        } else {
+            Write-Output "User folder not found: $userFolder"
         }
-        
-        Write-Output "Completed removal process for user profile: $username"
-    } -ArgumentList $username
+    } else {
+        Write-Output "Profile for account: $accountName not found."
+    }
+    
+    Write-Output "Finished processing account: $accountName"
+    Write-Output "----------------------------------------"
 }
-
-# Wait for all jobs to complete
-Get-Job | Wait-Job
-
-# Retrieve and display job outputs
-Get-Job | ForEach-Object {
-    $job = $_
-    $jobOutput = Receive-Job -Job $job
-    Write-Output $jobOutput
-}
-
-# Clean up completed jobs
-Get-Job | Remove-Job
