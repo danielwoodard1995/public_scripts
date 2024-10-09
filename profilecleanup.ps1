@@ -1,3 +1,6 @@
+# powershell -noexit -ExecutionPolicy Bypass -File profilecleanup.ps1
+# bypass policy
+
 # Define the array of account names
 $accountNames = @('UserA', 'UserB', 'UserC')
 
