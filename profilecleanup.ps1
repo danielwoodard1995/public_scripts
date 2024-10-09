@@ -1,46 +1,30 @@
-$usersPath = 'C:\Users'
+# Define the users to exclude
+$excludedUsers = @("Administrator", "Domain Users", "YourUser1", "YourUser2")
 
-$profileWhiteList = @("Public", "Default", "Administrator", "Guest", "WDAGUtilityAccount", "ictsupport")
+# Get all user profiles
+$userProfiles = Get-WmiObject Win32_UserProfile | Where-Object { $_.Special -eq $false }
 
-$folders = Get-ChildItem -Path $usersPath -Directory
+foreach ($profile in $userProfiles) {
+    $username = $profile.LocalPath.Split("\")[-1]
 
-foreach ($folder in $folders) {
-    if ($profileWhiteList -notcontains $folder.Name) {
-        try {
-            Remove-Item -Path $folder.FullName -Recurse -Force
-            Write-Output "Deleted folder: $($folder.FullName)"
-        } catch {
-                Write-Output "Failed to delete folder named: $($folder.FullName). Error: $_"
-                
-            } else {
-                Write-Output "Skipping folder: $($folder.FullName)"
-        }
+    if ($excludedUsers -notcontains $username) {
+        # Remove user profile folder forcefully
+        Remove-Item -Path $profile.LocalPath -Recurse -Force
+
+        # Remove user SID
+        $sid = $profile.SID
+        Remove-WmiObject -Query "SELECT * FROM Win32_UserProfile WHERE SID='$sid'"
     }
 }
 
-# Initialize the whiteList
-$whiteList = @("ictsupport", "Default", "Administrator")
+# Remove user SIDs from registry
+$regPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList"
+$profileSIDs = Get-ChildItem -Path $regPath
 
-# Retrieve user profiles
-$userProfiles = Get-WmiObject -Class Win32_UserProfile
+foreach ($sid in $profileSIDs) {
+    $username = (Get-ItemProperty -Path "$regPath\$sid.PSChildName").ProfileImagePath.Split("\")[-1]
 
-# Extract SIDs for the whiteList
-$whiteListSIDs = @()
-foreach ($profile in $userProfiles) {
-    $userName = $profile.LocalPath.Split('\')[-1]
-    if ($whiteList -contains $userName) {
-        $whiteListSIDs += $profile.SID
-    }
-}
-
-# Compare all SIDs and delete profiles that are not in the whiteList
-foreach ($profile in $userProfiles) {
-    $userName = $profile.LocalPath.Split('\')[-1]
-    if ($whiteListSIDs -contains $profile.SID) {
-        Write-Output "Profile $($userName), was not deleted"
-    } else {
-        # Delete the profile
-        $profile.Delete()
-        Write-Output "Deleted profile: $userName"
+    if ($excludedUsers -notcontains $username) {
+        Remove-Item -Path "$regPath\$sid.PSChildName" -Recurse -Force
     }
 }
