@@ -12,8 +12,8 @@ foreach ($profile in $userProfiles) {
     $username = $profile.LocalPath.Split("\")[-1]
 
     if ($excludedUsers -notcontains $username) {
-        # Remove user profile folder forcefully
-        Remove-Item -Path $profile.LocalPath -Recurse -Force
+        # Remove user profile folder forcefully using Get-ChildItem
+        Get-ChildItem -Path $profile.LocalPath -Recurse -Force | Remove-Item -Recurse -Force
 
         # Remove user SID
         $sid = $profile.SID
@@ -29,6 +29,6 @@ foreach ($sid in $profileSIDs) {
     $username = (Get-ItemProperty -Path "$regPath\$sid.PSChildName").ProfileImagePath.Split("\")[-1]
 
     if ($excludedUsers -notcontains $username) {
-        Remove-Item -Path "$regPath\$sid.PSChildName" -Recurse -Force
+        Get-ChildItem -Path "$regPath\$sid.PSChildName" -Recurse -Force | Remove-Item -Recurse -Force
     }
 }
